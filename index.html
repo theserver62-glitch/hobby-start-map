@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>취미 시작 지도</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&display=swap">
+<style>
+:root{
+  --ink:#1d1b16; --muted:#5f5a50; --line:#ddd7ca; --paper:#f6f3ec; --raised:#fffdf8;
+  --accent:#1f6a48; --accent-ink:#ffffff; --tag:#ece6d8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 Pretendard,system-ui,sans-serif;letter-spacing:-0.01em}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 64px}
+h1{font:700 32px/1.25 "Gowun Batang",serif;margin:8px 0 8px;letter-spacing:-0.02em}
+h2{font:700 22px/1.35 "Gowun Batang",serif;margin:0 0 4px}
+.lead{margin:0 0 24px;color:var(--muted)}
+label{display:block;font-weight:600;margin:0 0 8px}
+input[type=search],select{width:100%;min-height:48px;padding:0 16px;font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:8px}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.picker{display:grid;gap:16px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;max-height:224px;overflow:auto;padding:4px 0}
+.chip{min-height:44px;padding:0 16px;font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:22px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.result{margin-top:32px}
+.result.enter{animation:up .2s ease-out}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.result.enter{animation:none}}
+.hobby-title{font:700 28px/1.3 "Gowun Batang",serif;margin:0 0 4px}
+section{padding:24px 0;border-top:1px solid var(--line)}
+.step{color:var(--muted);font-weight:600;margin:0}
+ul{list-style:none;margin:16px 0 0;padding:0}
+li{padding:12px 0;border-bottom:1px solid var(--line)}
+li:last-child{border-bottom:0}
+.name{font-weight:600}
+.meta{color:var(--muted)}
+.note{font-size:14px;color:var(--muted);margin:8px 0 0}
+.tag{display:inline-block;font-size:14px;padding:0 8px;border-radius:4px;background:var(--tag);color:var(--muted);margin-left:4px}
+a{color:var(--accent);text-underline-offset:3px}
+a.go{display:inline-flex;align-items:center;min-height:44px}
+.empty{color:var(--muted);margin:16px 0 0}
+.sub{font-weight:600;margin:20px 0 0}
+.wait{margin:16px 0 0;padding:12px 16px;border:1px dashed var(--line);border-radius:8px;color:var(--muted)}
+footer{margin-top:40px;padding-top:24px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+footer p{margin:0 0 8px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>취미 시작 지도</h1>
+  <p class="lead">고른 취미를 한국체육산업개발의 강습 영상과 스포츠센터 강좌, 우리 동네 공공 강좌로 이어 드려요.</p>
+
+  <div class="picker">
+    <div>
+      <label for="q">취미 찾기</label>
+      <input id="q" type="search" placeholder="예: 수영, 라인댄스, 도자기" autocomplete="off">
+      <div class="chips" id="chips" role="group" aria-label="취미 목록"></div>
+    </div>
+    <div>
+      <label for="region">사는 지역</label>
+      <select id="region"></select>
+    </div>
+  </div>
+
+  <div id="result" class="result" aria-live="polite"></div>
+
+  <footer>
+    <p>데이터: 공공데이터포털(data.go.kr). 한국체육산업개발 스포츠센터 강좌 정보(2026-08), 센터별 강좌정보(2026-05~07), 스포츠센터 종목정보(2025-08), 온라인 강습 동영상(2022-06), 잔디시설정보(2025-05) · 전국평생학습강좌표준데이터(2026-10까지) · 한국문화정보원 전국 문화 여가 활동 시설(클래스)(2022-11).</p>
+    <p>강좌가 지금 열리는지와 수강료는 각 기관에서 꼭 확인하세요. 이 페이지는 신청·결제를 하지 않고, 개인정보를 모으지 않아요.</p>
+  </footer>
+</main>
+<script src="data.js"></script>
+<script src="park.js"></script>
+<script>
+const D = window.DATA, H = D.hobbies, byId = Object.fromEntries(H.map(h => [h.id, h]));
+const REGIONS = ["서울","경기","인천","강원","충북","충남","대전","세종","전북","전남","광주","경북","경남","대구","울산","부산","제주"];
+const PARK_HOBBIES = new Set(["walking","urbansketch","photo","filmcamera","running","drawing","watercolor","birdwatching","forestbathing","plogging","meditation","yoga","theater","choir","exhibition"]);
+const P = window.PARK;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const won = p => { const n = Number(String(p).replace(/[^0-9]/g, "")); return p === "" || isNaN(n) ? "" : n.toLocaleString("ko-KR") + "원"; };
+const link = (u, t) => /^https?:\/\//.test(u || "") ? `<a class="go" href="${esc(u)}" target="_blank" rel="noopener">${t}</a>` : "";
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch {} } };
+
+const params = new URLSearchParams(location.search);
+let cur = byId[params.get("h")] ? params.get("h") : null;
+$("#region").innerHTML = REGIONS.map(r => `<option>${r}</option>`).join("");
+$("#region").value = REGIONS.includes(params.get("r")) ? params.get("r") : (store.get("region") || "서울");
+
+function chips() {
+  const q = $("#q").value.trim().replace(/\s/g, "");
+  const list = H.filter(h => !q || h.name.replace(/\s/g, "").includes(q));
+  $("#chips").innerHTML = list.length
+    ? list.map(h => `<button type="button" class="chip" data-id="${h.id}" aria-pressed="${h.id === cur}">${esc(h.name)}</button>`).join("")
+    : `<p class="empty">찾는 취미가 없어요. 다른 이름으로 찾아보세요.</p>`;
+}
+
+function render() {
+  const el = $("#result");
+  if (!cur) { el.innerHTML = `<p class="empty">위에서 취미를 하나 고르면 시작할 수 있는 공공 강좌를 보여 드려요.</p>`; return; }
+  const h = byId[cur], region = $("#region").value, life = h.l[region] || [], cls = h.c[region] || [];
+  const nowL = life.filter(r => r[10]), pastL = life.filter(r => !r[10]);
+  const s1 = h.v.length ? `<ul>${h.v.map(([t, u]) => `<li><span class="name">${esc(t)}</span><br>${link(u, "영상 보기")}</li>`).join("")}</ul>`
+    : `<p class="empty">이 취미의 KSPO 강습 영상은 아직 없어요.</p>`;
+  const s2 = (h.i.length || h.k.length) ? `
+      ${h.i.length ? `<ul>${h.i.map(([c, n, d, u]) => `<li><span class="name">${esc(n)}</span> <span class="meta">${esc(c)}</span><br><span class="meta">${esc(d)}</span><br>${link(u, "강좌 안내 보기")}</li>`).join("")}</ul>` : ""}
+      ${h.k.length ? `<p class="sub">요즘 열린 강좌</p><ul>${h.k.map(([c, n, t, d, g, p, cap, m, u, kid]) => `
+        <li><span class="name">${esc(n)}</span>${kid ? '<span class="tag">어린이·청소년</span>' : ""}<br>
+        <span class="meta">${esc(c)} · ${esc(d)} ${esc(t)}${cap ? ` · 정원 ${esc(cap)}명` : ""}${won(p) ? ` · ${won(p)}` : ""}</span><br>
+        <span class="note">데이터 기준 ${esc(m)} · 지금 열리는지는 센터에 확인</span>${u ? `<br>${link(u, "수강 신청 페이지")}` : ""}</li>`).join("")}</ul>
+        ${h.k.every(r => r[9]) ? `<p class="note">이 취미는 KSPO 센터에 어린이·청소년 강좌만 있어요.</p>` : ""}` : ""}`
+    : `<p class="empty">KSPO 센터(송파·일산·분당)에는 이 취미 강좌가 없어요. 아래 우리 동네 강좌를 보세요.</p>`;
+  const lifeItem = r => `<li><span class="name">${esc(r[0])}</span><br>
+      <span class="meta">${esc(r[1])} · ${esc(r[2])}~${esc(r[3])}${r[4] ? ` · ${esc(r[4])}` : ""}${r[5] !== "~" ? ` ${esc(r[5])}` : ""}${won(r[6]) ? ` · ${won(r[6])}` : ""}</span>
+      ${r[9] ? `<br><span class="note">${esc(r[9])}</span>` : ""}${r[8] ? `<br>${link(r[8], "기관 홈페이지")}` : ""}</li>`;
+  const s3 = life.length ? `
+      ${nowL.length ? `<ul>${nowL.map(lifeItem).join("")}</ul>` : `<p class="empty">${esc(region)}에 지금 열린 강좌는 데이터에 없어요.</p>`}
+      ${pastL.length ? `<p class="sub">예전에 열렸던 강좌 <span class="meta">(다음 학기 참고)</span></p><ul>${pastL.map(lifeItem).join("")}</ul>` : ""}`
+    : `<p class="empty">${esc(region)}의 평생학습 강좌 데이터에는 이 취미가 없어요. 다른 지역을 골라 보세요.</p>`;
+  const s4 = cls.length ? `<ul>${cls.map(([t, p, hr, gu]) => `<li><span class="name">${esc(t)}</span><br><span class="meta">${esc(gu)}${hr ? ` · ${esc(hr)}시간` : ""}${won(p) ? ` · ${won(p)}` : ""}</span></li>`).join("")}</ul>
+      <p class="note">2022년 11월 기준 참고 자료예요. 지금 운영하는지는 확인이 필요해요.</p>` : "";
+  const hours = (kind, test) => (P.parking[kind] || []).filter(r => r[0] >= 7 && r[0] <= 22 && test(r)).map(([hr]) => hr + "시").join(", ") || "기록 없음";
+  const s5 = PARK_HOBBIES.has(h.id) && P ? `
+    <section><p class="step">4 · 해 보기</p><h2>올림픽공원에서</h2>
+      <p class="sub">가기 좋은 시간</p>
+      <p id="live" class="meta">지금 주차 대수를 불러오는 중이에요…</p>
+      <ul>
+        <li><span class="name">주말</span><br><span class="meta">여유: ${hours("주말", r => r[2] <= 15)} · 붐빔(만차 절반 이상): ${hours("주말", r => r[2] >= 50)}</span></li>
+        <li><span class="name">평일</span><br><span class="meta">여유: ${hours("평일", r => r[2] <= 15)} · 붐빔(만차 절반 이상): ${hours("평일", r => r[2] >= 50)}</span></li>
+      </ul>
+      <p class="note">주차장 혼잡도 기록 ${P.parking_n}건(${P.parking_range[0]}~${P.parking_range[1]})을 시간대별로 센 값이에요. 사람 수가 아니라 차 기준이라 참고로만 봐 주세요.</p>
+      <p class="sub">장미광장</p>
+      <p>장미 ${P.roses.length}종이 있어요. 예: ${P.roses.slice(0, 8).map(esc).join(", ")}</p>
+      <p class="sub">잔디밭</p>
+      <ul>${D.grass.filter(([p]) => p !== "잔디통제시기").map(([p, o]) => `<li><span class="name">${esc(p)}</span> <span class="meta">${esc(o)}</span></li>`).join("")}</ul>
+      <p class="note">잔디는 11월 1일부터 다음 해 5월 31일까지 일부 통제돼요(잔디시설정보 2025-05).</p>
+      <p class="sub">최근 공연</p>
+      <ul>${P.perf.slice(0, 4).map(([d, t, u]) => `<li><span class="name">${esc(t)}</span><br><span class="meta">${esc(d)}</span></li>`).join("")}</ul>
+      <p class="note">공연 데이터는 ${esc(P.perf[0][0])}까지 있어요. 공연 날은 주차장이 일찍 차니 대중교통을 권해요. ${link("https://www.ksponco.or.kr/olympicpark/eventInfo/eventInfoList?mid=a20301010100", "올림픽공원 공연 일정 보기")}</p></section>` : "";
+  if (!h.v.length && !h.i.length && !h.k.length && !Object.keys(h.l).length && !Object.keys(h.c).length) {
+    el.innerHTML = `<p class="hobby-title">${esc(h.name)}</p><p class="empty">이 취미는 강좌로 배우기보다 혼자 시작하는 취미라서, 이어 드릴 공공 강좌가 데이터에 없어요.</p>`;
+    return;
+  }
+  el.innerHTML = `
+    <p class="hobby-title">${esc(h.name)}</p>
+    <section><p class="step">1 · 집에서 먼저</p><h2>무료 강습 영상</h2>${s1}</section>
+    <section><p class="step">2 · 싸게 배우기</p><h2>KSPO 스포츠센터</h2>${s2}</section>
+    <section><p class="step">3 · 가까운 곳에서</p><h2>${esc(region)} 공공 강좌</h2>${s3}
+      ${s4 ? `<p class="sub">원데이 클래스</p>${s4}` : ""}</section>
+    ${s5}`;
+  el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter");
+  if (s5) fetch(P.live_parking).then(r => r.json()).then(([d]) => {
+    const t = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    $("#live").textContent = `지금(${t}) 동2·남2·북2문 주차장에 ${Number(d.parking_sum).toLocaleString("ko-KR")}대가 있어요.`;
+  }).catch(() => { const l = $("#live"); if (l) l.textContent = "지금 주차 대수는 불러오지 못했어요."; });
+}
+
+function sync() {
+  const u = new URL(location.href);
+  cur ? u.searchParams.set("h", cur) : u.searchParams.delete("h");
+  u.searchParams.set("r", $("#region").value);
+  history.replaceState(null, "", u);
+}
+$("#q").addEventListener("input", chips);
+$("#chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  cur = b.dataset.id; chips(); render(); sync();
+  $("#result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+});
+$("#region").addEventListener("change", () => { store.set("region", $("#region").value); render(); sync(); });
+chips(); render();
+</script>
+</body>
+</html>
